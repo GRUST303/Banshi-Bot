@@ -27,7 +27,7 @@ def with_lock(func):
     # 包装器：防止瞎点按钮导致并发冲突
     async def wrapper(*args, **kwargs):
         if state.is_processing:
-            ui.notify("后端正在发功，别点太快...", type='warning')
+            ui.notify("后端正在发力，别点太快...", type='warning')
             return
         state.is_processing = True
         if loading_dialog: loading_dialog.open()
@@ -236,8 +236,8 @@ def main_page():
                             asyncio.create_task(run_bot(on_bot_status))
                         else:
                             state.running = False
-                            btn_run.props('color=green icon=play_arrow label="开始接客"')
-                    btn_run = ui.button('开始接客', on_click=toggle_run).props('color=green icon=play_arrow un-elevated rounded').classes('w-full h-12')
+                            btn_run.props('color=green icon=play_arrow label="开始找史"')
+                    btn_run = ui.button('开始找史', on_click=toggle_run).props('color=green icon=play_arrow un-elevated rounded').classes('w-full h-12')
 
                 with apply_card_theme(ui.card()):
                     ui.label('审核员设置').classes('text-lg font-bold mb-2 dark:text-white')
@@ -361,7 +361,7 @@ def main_page():
                         with ui.row().classes('w-full p-3 border-b dark:border-gray-700 justify-between items-center bg-gray-100 dark:bg-gray-800'):
                             with ui.row().classes('items-center gap-2'):
                                 ui.icon('forum', size='sm').classes('text-purple-500')
-                                ui.label('外网情报').classes('font-bold dark:text-white')
+                                ui.label('聊天记录').classes('font-bold dark:text-white')
                                 badge_forward = ui.badge('0').props('color=purple dense')
                             
                             with ui.row().classes('gap-1'):
@@ -406,4 +406,5 @@ def main_page():
             if reviewer_panel_refreshable: reviewer_panel_refreshable.refresh()
             state.ui_needs_refresh = False
             
+
     ui.timer(1.0, auto_refresh)
