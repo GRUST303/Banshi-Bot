@@ -102,7 +102,7 @@
 ### 🙏 鸣谢
 本项目在核心理念与业务逻辑上，部分参考并深受以下优秀开源项目的启发：
 
-astrbot_sowing_discord (by anka-afk)
+[astrbot_sowing_discord](https://github.com/anka-afk/astrbot_sowing_discord/tree/main?tab=MIT-1-ov-file) (by anka-afk)
 感谢原作者提出的“全自动搬史”概念以及在 OneBot 合并转发逻辑上的探索。
 
 相比于原项目的 Astrbot 插件形态与自动表情审核机制，本项目采用了 NiceGUI 构建独立 Web 控制台，旨在提供更精准的“人工审核”分流与多级防风控兜底发送能力。
