@@ -94,55 +94,53 @@ def toggle_select_direct(item, value):
     item['selected'] = value
 
 def refresh_review_panel():
-    media_items = [i for i in state.pending_list if i['type'] in ['image', 'video']]
-    forward_items = [i for i in state.pending_list if i['type'] == 'forward']
-    
-    if badge_media: badge_media.text = str(len(media_items))
-    if badge_forward: badge_forward.text = str(len(forward_items))
+    try:
+        media_items = [i for i in state.pending_list if i['type'] in ['image', 'video']]
+        forward_items = [i for i in state.pending_list if i['type'] == 'forward']
+        
+        if badge_media: badge_media.text = str(len(media_items))
+        if badge_forward: badge_forward.text = str(len(forward_items))
 
-    # 渲染左半区 (图片/视频)
-    if review_container_left:
-        review_container_left.clear()
-        with review_container_left:
-            for idx, item in enumerate(state.pending_list):
-                if item['type'] not in ['image', 'video']: continue
-                
-                border_cls = 'border-blue-500 bg-blue-50 dark:bg-blue-900' if item['selected'] else 'border-transparent bg-white dark:bg-gray-800 shadow'
-                with ui.card().classes(f'w-full p-0 rounded border-2 transition-all relative aspect-square {border_cls}'):
-                    with ui.row().classes('absolute top-1 left-1 z-20'):
-                        ui.checkbox(value=item['selected'], on_change=lambda e, i=item: toggle_select_direct(i, e.value)).props('size=sm color=blue keep-color')
-                    
-                    with ui.row().classes('absolute top-1 right-1 z-20'):
-                        icon = 'play_circle' if item['type'] == 'video' else 'zoom_in'
-                        ui.button(icon=icon, on_click=lambda _, idx=idx: open_global_viewer(idx)).props('round color=blue dense size=xs shadow stop-propagation')
+        if review_container_left:
+            review_container_left.clear()
+            with review_container_left:
+                for idx, item in enumerate(state.pending_list):
+                    if item['type'] not in ['image', 'video']: continue
+                    border_cls = 'border-blue-500 bg-blue-50 dark:bg-blue-900' if item['selected'] else 'border-transparent bg-white dark:bg-gray-800 shadow'
+                    with ui.card().classes(f'w-full p-0 rounded border-2 transition-all relative aspect-square {border_cls}'):
+                        with ui.row().classes('absolute top-1 left-1 z-20'):
+                            ui.checkbox(value=item['selected'], on_change=lambda e, i=item: toggle_select_direct(i, e.value)).props('size=sm color=blue keep-color')
+                        with ui.row().classes('absolute top-1 right-1 z-20'):
+                            icon = 'play_circle' if item['type'] == 'video' else 'zoom_in'
+                            ui.button(icon=icon, on_click=lambda _, idx=idx: open_global_viewer(idx)).props('round color=blue dense size=xs shadow stop-propagation')
+                        with ui.column().classes('w-full h-full items-center justify-center p-1'):
+                            if item['type'] == 'image':
+                                ui.image(item['previews'][0]['url']).classes('max-h-full max-w-full rounded').props('referrerpolicy="no-referrer"')
+                            else:
+                                ui.icon('movie', size='md').classes('opacity-30 dark:text-gray-400')
 
-                    with ui.column().classes('w-full h-full items-center justify-center p-1'):
-                        if item['type'] == 'image':
-                            ui.image(item['previews'][0]['url']).classes('max-h-full max-w-full rounded').props('referrerpolicy="no-referrer"')
-                        else:
-                            ui.icon('movie', size='md').classes('opacity-30 dark:text-gray-400')
-
-    # 渲染右半区 (记录)
-    if review_container_right:
-        review_container_right.clear()
-        with review_container_right:
-            for idx, item in enumerate(state.pending_list):
-                if item['type'] != 'forward': continue
-                
-                border_cls = 'border-purple-500 bg-purple-50 dark:bg-purple-900' if item['selected'] else 'border-transparent bg-white dark:bg-gray-800 shadow'
-                with ui.card().classes(f'w-full p-2 rounded border-2 transition-all relative {border_cls}'):
-                    with ui.row().classes('w-full items-center justify-between'):
-                        with ui.row().classes('items-center gap-2'):
-                            ui.checkbox(value=item['selected'], on_change=lambda e, i=item: toggle_select_direct(i, e.value)).props('size=sm color=purple keep-color')
-                            with ui.column().classes('gap-0'):
-                                ui.label('合并转发记录').classes('text-sm font-bold dark:text-gray-200')
-                                ui.label(datetime.fromtimestamp(item['timestamp']).strftime('%H:%M:%S')).classes('text-xs opacity-50 dark:text-gray-400')
-                        
-                        async def forward_handler(e, i=item):
-                            success, msg = await send_preview_to_reviewer(i['raw_msg_id'])
-                            ui.notify(msg, type='positive' if success else 'negative')
-                            
-                        ui.button(icon='send', on_click=forward_handler).props('round color=purple dense size=sm shadow stop-propagation').tooltip('私发给审核员')
+        if review_container_right:
+            review_container_right.clear()
+            with review_container_right:
+                for idx, item in enumerate(state.pending_list):
+                    if item['type'] != 'forward': continue
+                    border_cls = 'border-purple-500 bg-purple-50 dark:bg-purple-900' if item['selected'] else 'border-transparent bg-white dark:bg-gray-800 shadow'
+                    with ui.card().classes(f'w-full p-2 rounded border-2 transition-all relative {border_cls}'):
+                        with ui.row().classes('w-full items-center justify-between'):
+                            with ui.row().classes('items-center gap-2'):
+                                ui.checkbox(value=item['selected'], on_change=lambda e, i=item: toggle_select_direct(i, e.value)).props('size=sm color=purple keep-color')
+                                with ui.column().classes('gap-0'):
+                                    ui.label('合并转发记录').classes('text-sm font-bold dark:text-gray-200')
+                                    ui.label(datetime.fromtimestamp(item['timestamp']).strftime('%H:%M:%S')).classes('text-xs opacity-50 dark:text-gray-400')
+                            async def forward_handler(e, i=item):
+                                success, msg = await send_preview_to_reviewer(i['raw_msg_id'])
+                                ui.notify(msg, type='positive' if success else 'negative')
+                            ui.button(icon='send', on_click=forward_handler).props('round color=purple dense size=sm shadow stop-propagation').tooltip('私发给审核员')
+    except RuntimeError as e:
+        if 'deleted' in str(e):
+            pass
+        else:
+            raise e
 
 
 @ui.page('/')
@@ -318,7 +316,15 @@ def main_page():
                     # [新增] 全自动打包开关和阈值
                     ui.switch('开启全自动打包/转发').bind_value(state, 'auto_pack').classes('w-full mb-1 font-bold text-green-600')
                     ui.number('自动打包阈值 (累计满多少条发)', format='%.0f').bind_value(state, 'auto_pack_threshold').classes('w-full mb-2').tooltip('推荐设为10-15')
-
+                    ui.separator().classes('my-2 dark:bg-gray-600')
+                    
+                    # [新增] 审核员警告设置
+                    ui.label('私聊堆积警告设置 (0为禁用)').classes('text-xs font-bold text-red-500 mb-1')
+                    with ui.row().classes('w-full gap-2 mb-2'):
+                        ui.number('媒体满', format='%.0f').bind_value(state, 'warn_media_count').classes('w-20')
+                        ui.number('情报满', format='%.0f').bind_value(state, 'warn_forward_count').classes('w-20')
+                        ui.number('间隔(分)', format='%.0f').bind_value(state, 'warn_interval_minutes').classes('w-20')
+                        
                     ui.button('保存参数', on_click=state.save_config).props('outline rounded color=grey w-full mt-2')
 
             # --- 右栏：业务区 ---
@@ -407,18 +413,24 @@ def main_page():
                     if on_log_msg not in log_subscribers:
                         log_subscribers.append(on_log_msg)
 
-    # 简易轮询机制刷UI
+# 简易轮询机制刷UI
     def auto_refresh():
-        # [核心修复] 检查信箱里有没有后台传来的通知
-        while state.notify_queue:
-            msg_type, msg_text = state.notify_queue.pop(0)
-            ui.notify(msg_text, type=msg_type, position='top', timeout=5000)
+        try:
+            while state.notify_queue:
+                msg_type, msg_text = state.notify_queue.pop(0)
+                ui.notify(msg_text, type=msg_type, position='top', timeout=5000)
 
-        if state.ui_needs_refresh:
-            refresh_review_panel()
-            if groups_s_refreshable: groups_s_refreshable.refresh()
-            if groups_t_refreshable: groups_t_refreshable.refresh()
-            if reviewer_panel_refreshable: reviewer_panel_refreshable.refresh()
-            state.ui_needs_refresh = False
+            if state.ui_needs_refresh:
+                refresh_review_panel()
+                if groups_s_refreshable: groups_s_refreshable.refresh()
+                if groups_t_refreshable: groups_t_refreshable.refresh()
+                if reviewer_panel_refreshable: reviewer_panel_refreshable.refresh()
+                state.ui_needs_refresh = False
+        except RuntimeError as e:
+            if 'deleted' in str(e):
+                pass 
+            else:
+                raise e
             
     ui.timer(1.0, auto_refresh)
+
