@@ -61,6 +61,32 @@ async def check_and_trigger_auto_pack():
                 state.is_processing = False
             forward_items = [i for i in state.pending_list if i['type'] == 'forward']
 
+async def check_and_trigger_warnings():
+    """检测堆积并发送私聊警告"""
+    if not state.swordholder_qq or state.warn_interval_minutes <= 0:
+        return
+    if time.time() - state.last_warn_time < state.warn_interval_minutes * 60:
+        return
+        
+    media_items = [i for i in state.pending_list if i['type'] in ['image', 'video']]
+    forward_items = [i for i in state.pending_list if i['type'] == 'forward']
+    
+    msgs = []
+    if len(media_items) >= state.warn_media_count and state.warn_media_count > 0:
+        msgs.append(f"【警告】媒体库已堆积 {len(media_items)} 条，请及时清理防止卡顿裂图！")
+    if len(forward_items) >= state.warn_forward_count and state.warn_forward_count > 0:
+        msgs.append(f"【警告】情报局已堆积 {len(forward_items)} 条，请及时处理！")
+        
+    if msgs:
+        state.last_warn_time = time.time()
+        full_msg = "\n".join(msgs)
+        try:
+            # 伪造私聊发送 API
+            await api_call("send_private_msg", {"user_id": int(state.swordholder_qq), "message": full_msg})
+            add_log("[Warn] 已向审核员发送堆积警告")
+        except Exception as e:
+            pass
+
 async def run_bot(on_status_change=None):
     def update_status(status_str):
         if on_status_change:
@@ -138,6 +164,9 @@ async def run_bot(on_status_change=None):
                                 if state.auto_pack:
                                     asyncio.create_task(check_and_trigger_auto_pack())
 
+                                # [新增] 触发警告检查
+                                asyncio.create_task(check_and_trigger_warnings())
+
         except Exception as e:
             add_log(f"[WS] 失去连接: {e}")
             update_status('error')
@@ -163,4 +192,5 @@ async def run_bot(on_status_change=None):
             await asyncio.sleep(3) 
             
     add_log("[WS] 进程已停止")
+
     update_status('disconnected')
