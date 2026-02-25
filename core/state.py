@@ -63,6 +63,9 @@ class BotState:
                     self.auto_clear_minutes = data.get('auto_clear_minutes', 30)
                     self.auto_pack = data.get('auto_pack', False)
                     self.auto_pack_threshold = data.get('auto_pack_threshold', 10)
+                    self.warn_media_count = data.get('warn_media_count', 50)
+                    self.warn_forward_count = data.get('warn_forward_count', 20)
+                    self.warn_interval_minutes = data.get('warn_interval_minutes', 30)
             except Exception as e:
                 print(f"[Error] 读配置挂了: {e}")
 
@@ -91,6 +94,9 @@ class BotState:
             'auto_clear_minutes': self.auto_clear_minutes,
             'auto_pack': self.auto_pack,
             'auto_pack_threshold': self.auto_pack_threshold
+            'warn_media_count': self.warn_media_count,
+            'warn_forward_count': self.warn_forward_count,
+            'warn_interval_minutes': self.warn_interval_minutes
         }
         try:
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
@@ -113,3 +119,4 @@ class BotState:
 state = BotState()
 
 state.load_data()
+
