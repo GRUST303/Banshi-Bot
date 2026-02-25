@@ -21,6 +21,12 @@ class BotState:
         self.auto_pack: bool = False
         self.auto_pack_threshold: int = 10
         
+        #堆积警告机制
+        self.warn_media_count: int = 50
+        self.warn_forward_count: int = 20
+        self.warn_interval_minutes: int = 30
+        self.last_warn_time: float = 0.0
+        
         self.connected = False
         self.running = False
         self.ws = None
@@ -105,4 +111,5 @@ class BotState:
         self.ui_needs_refresh = True
 
 state = BotState()
+
 state.load_data()
