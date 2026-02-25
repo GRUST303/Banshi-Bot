@@ -1,18 +1,22 @@
 import time
 import uuid
+import os
 from typing import Optional, List
 from core.state import state
 
-# 日志订阅器，解耦前端和后端
 log_subscribers = []
+os.makedirs("logs", exist_ok=True)
 
 def add_log(msg: str):
     timestamp = time.strftime("%H:%M:%S")
     full_msg = f"[{timestamp}] {msg}"
     print(full_msg)
+    try:
+        with open("logs/bot_run.log", "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+    except: pass
     for sub in log_subscribers:
-        try:
-            sub(full_msg)
+        try: sub(full_msg)
         except: pass
 
 def get_avatar_url(id_val, is_group=True):
@@ -24,7 +28,6 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 def process_message_content(message_chain: List[dict]) -> Optional[dict]:
-    # 过滤空消息
     if not message_chain: return None
     
     clean_segments = [] 
@@ -33,7 +36,6 @@ def process_message_content(message_chain: List[dict]) -> Optional[dict]:
     msg_type = "unknown" 
     has_text = False
     
-    # 遍历消息段
     for seg in message_chain:
         stype = seg.get('type')
         data = seg.get('data', {})
@@ -44,7 +46,6 @@ def process_message_content(message_chain: List[dict]) -> Optional[dict]:
         elif stype == 'image':
             url = data.get('url')
             if url:
-                # 给file也塞url，OneBot的坑
                 clean_segments.append({"type": "image", "data": {"file": url, "url": url}})
                 previews.append({'type': 'image', 'url': url})
                 unique_hashes.append(data.get('file') or url)
@@ -53,10 +54,11 @@ def process_message_content(message_chain: List[dict]) -> Optional[dict]:
             
         elif stype == 'video':
             url = data.get('url')
+            file_id = data.get('file') or url 
             if url:
-                clean_segments.append({"type": "video", "data": {"file": url, "url": url}})
+                clean_segments.append({"type": "video", "data": {"file": file_id, "url": url}})
                 previews.append({'type': 'video', 'url': url})
-                unique_hashes.append(data.get('file') or url)
+                unique_hashes.append(file_id)
                 msg_type = "video" 
             
         elif stype in ['forward', 'node']:
@@ -66,16 +68,18 @@ def process_message_content(message_chain: List[dict]) -> Optional[dict]:
             unique_hashes.append(resid)
             msg_type = "forward"
 
-    # 过滤纯文本信息
     if has_text or not clean_segments: return None
 
-    # 去重
     combined_hash = "".join(str(h) for h in unique_hashes)
-    if combined_hash in state.dedup_set:
+    
+    # [修复核心] 确保这里用的是 dedup_dict 而不是 dedup_set
+    if combined_hash in state.dedup_dict:
         add_log("[去重] 发现重复内容，已丢弃")
         return None
     
-    state.dedup_set.add(combined_hash)
+    state.dedup_dict[combined_hash] = True
+    if len(state.dedup_dict) > state.MAX_DEDUP_SIZE:
+        state.dedup_dict.popitem(last=False)
     
     return {
         "id": generate_uuid(),
@@ -84,5 +88,5 @@ def process_message_content(message_chain: List[dict]) -> Optional[dict]:
         "previews": previews,
         "timestamp": time.time(),
         "selected": False,
-        "raw_msg_id": 0 # 留空给外部填
+        "raw_msg_id": 0 
     }
