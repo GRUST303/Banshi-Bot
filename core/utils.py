@@ -5,16 +5,27 @@ from typing import Optional, List
 from core.state import state
 
 log_subscribers = []
-os.makedirs("logs", exist_ok=True)
+
+# [修复权限报错] 获取项目根目录的绝对路径，并安全地创建 logs 文件夹
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+except Exception as e:
+    print(f"[警告] 无法创建日志文件夹: {e}")
 
 def add_log(msg: str):
     timestamp = time.strftime("%H:%M:%S")
     full_msg = f"[{timestamp}] {msg}"
     print(full_msg)
+    
     try:
-        with open("logs/bot_run.log", "a", encoding="utf-8") as f:
+        # 使用绝对路径写入日志
+        log_file = os.path.join(LOG_DIR, "bot_run.log")
+        with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
     except: pass
+
     for sub in log_subscribers:
         try: sub(full_msg)
         except: pass

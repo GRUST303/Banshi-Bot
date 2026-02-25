@@ -93,7 +93,7 @@ class BotState:
             'app_title': self.app_title,
             'auto_clear_minutes': self.auto_clear_minutes,
             'auto_pack': self.auto_pack,
-            'auto_pack_threshold': self.auto_pack_threshold
+            'auto_pack_threshold': self.auto_pack_threshold,
             'warn_media_count': self.warn_media_count,
             'warn_forward_count': self.warn_forward_count,
             'warn_interval_minutes': self.warn_interval_minutes
