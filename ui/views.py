@@ -309,7 +309,17 @@ def main_page():
                 with apply_card_theme(ui.card()):
                     ui.label('系统底层').classes('text-sm font-bold opacity-60 mb-2 dark:text-gray-400')
                     ui.input('WebSocket 地址').bind_value(state, 'ws_url').classes('w-full mb-2')
-                    ui.button('保存参数', on_click=state.save_config).props('outline rounded color=grey w-full')
+                    # [新增] Token 输入框
+                    ui.input('Access Token (可选)').bind_value(state, 'ws_token').classes('w-full mb-2').props('type=password')
+                    ui.number('断线多久后清空图库防裂图 (分钟，0为禁用)', format='%.0f').bind_value(state, 'auto_clear_minutes').classes('w-full mb-2').tooltip('设置0即为永不清空')
+                    
+                    ui.separator().classes('my-2 dark:bg-gray-600')
+                    
+                    # [新增] 全自动打包开关和阈值
+                    ui.switch('开启全自动打包/转发').bind_value(state, 'auto_pack').classes('w-full mb-1 font-bold text-green-600')
+                    ui.number('自动打包阈值 (累计满多少条发)', format='%.0f').bind_value(state, 'auto_pack_threshold').classes('w-full mb-2').tooltip('推荐设为10-15')
+
+                    ui.button('保存参数', on_click=state.save_config).props('outline rounded color=grey w-full mt-2')
 
             # --- 右栏：业务区 ---
             with ui.column().classes('col-span-3 h-full gap-4 flex flex-col min-h-0'):
@@ -399,6 +409,11 @@ def main_page():
 
     # 简易轮询机制刷UI
     def auto_refresh():
+        # [核心修复] 检查信箱里有没有后台传来的通知
+        while state.notify_queue:
+            msg_type, msg_text = state.notify_queue.pop(0)
+            ui.notify(msg_text, type=msg_type, position='top', timeout=5000)
+
         if state.ui_needs_refresh:
             refresh_review_panel()
             if groups_s_refreshable: groups_s_refreshable.refresh()
@@ -406,5 +421,4 @@ def main_page():
             if reviewer_panel_refreshable: reviewer_panel_refreshable.refresh()
             state.ui_needs_refresh = False
             
-
     ui.timer(1.0, auto_refresh)
