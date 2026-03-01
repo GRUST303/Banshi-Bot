@@ -93,26 +93,55 @@ def delete_selected(target_type):
 def toggle_select_direct(item, value):
     item['selected'] = value
 
+def toggle_page_type(target_type):
+    # [新增] 全选本页的逻辑
+    if target_type == 'media':
+        items = [(idx, i) for idx, i in enumerate(state.pending_list) if i['type'] in ['image', 'video']]
+        start = (state.media_page - 1) * 20
+        current_items = [i for _, i in items[start:start+20]]
+    else:
+        items = [(idx, i) for idx, i in enumerate(state.pending_list) if i['type'] == 'forward']
+        start = (state.forward_page - 1) * 20
+        current_items = [i for _, i in items[start:start+20]]
+        
+    if not current_items: return
+    all_selected = all(i['selected'] for i in current_items)
+    for i in current_items: i['selected'] = not all_selected
+    refresh_review_panel()
+
 def refresh_review_panel():
     try:
-        media_items = [i for i in state.pending_list if i['type'] in ['image', 'video']]
-        forward_items = [i for i in state.pending_list if i['type'] == 'forward']
+        import math
+        media_all = [(idx, i) for idx, i in enumerate(state.pending_list) if i['type'] in ['image', 'video']]
+        forward_all = [(idx, i) for idx, i in enumerate(state.pending_list) if i['type'] == 'forward']
         
-        if badge_media: badge_media.text = str(len(media_items))
-        if badge_forward: badge_forward.text = str(len(forward_items))
+        # 动态计算最大页码
+        state.media_page_max = max(1, math.ceil(len(media_all) / 20))
+        state.forward_page_max = max(1, math.ceil(len(forward_all) / 20))
+        if state.media_page > state.media_page_max: state.media_page = state.media_page_max
+        if state.forward_page > state.forward_page_max: state.forward_page = state.forward_page_max
+        
+        if badge_media: badge_media.text = str(len(media_all))
+        if badge_forward: badge_forward.text = str(len(forward_all))
 
         if review_container_left:
             review_container_left.clear()
+            start_m = (state.media_page - 1) * 20
             with review_container_left:
-                for idx, item in enumerate(state.pending_list):
-                    if item['type'] not in ['image', 'video']: continue
+                # [分页] 仅渲染当前页的 20 个项目
+                for abs_idx, item in media_all[start_m : start_m + 20]:
                     border_cls = 'border-blue-500 bg-blue-50 dark:bg-blue-900' if item['selected'] else 'border-transparent bg-white dark:bg-gray-800 shadow'
                     with ui.card().classes(f'w-full p-0 rounded border-2 transition-all relative aspect-square {border_cls}'):
+                        # [新增] 绝对序号角标 (位于左上角稍微偏右)
+                        ui.label(str(abs_idx + 1)).classes('absolute top-1 left-7 z-20 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded pointer-events-none')
+                        
                         with ui.row().classes('absolute top-1 left-1 z-20'):
                             ui.checkbox(value=item['selected'], on_change=lambda e, i=item: toggle_select_direct(i, e.value)).props('size=sm color=blue keep-color')
+                        
                         with ui.row().classes('absolute top-1 right-1 z-20'):
                             icon = 'play_circle' if item['type'] == 'video' else 'zoom_in'
-                            ui.button(icon=icon, on_click=lambda _, idx=idx: open_global_viewer(idx)).props('round color=blue dense size=xs shadow stop-propagation')
+                            ui.button(icon=icon, on_click=lambda _, idx=abs_idx: open_global_viewer(idx)).props('round color=blue dense size=xs shadow stop-propagation')
+
                         with ui.column().classes('w-full h-full items-center justify-center p-1'):
                             if item['type'] == 'image':
                                 ui.image(item['previews'][0]['url']).classes('max-h-full max-w-full rounded').props('referrerpolicy="no-referrer"')
@@ -121,27 +150,30 @@ def refresh_review_panel():
 
         if review_container_right:
             review_container_right.clear()
+            start_f = (state.forward_page - 1) * 20
             with review_container_right:
-                for idx, item in enumerate(state.pending_list):
-                    if item['type'] != 'forward': continue
+                for abs_idx, item in forward_all[start_f : start_f + 20]:
                     border_cls = 'border-purple-500 bg-purple-50 dark:bg-purple-900' if item['selected'] else 'border-transparent bg-white dark:bg-gray-800 shadow'
                     with ui.card().classes(f'w-full p-2 rounded border-2 transition-all relative {border_cls}'):
-                        with ui.row().classes('w-full items-center justify-between'):
+                        # [新增] 绝对序号角标
+                        ui.label(str(abs_idx + 1)).classes('absolute top-1 right-10 z-20 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded pointer-events-none')
+                        
+                        with ui.row().classes('w-full items-center justify-between mt-2'):
                             with ui.row().classes('items-center gap-2'):
                                 ui.checkbox(value=item['selected'], on_change=lambda e, i=item: toggle_select_direct(i, e.value)).props('size=sm color=purple keep-color')
                                 with ui.column().classes('gap-0'):
                                     ui.label('合并转发记录').classes('text-sm font-bold dark:text-gray-200')
                                     ui.label(datetime.fromtimestamp(item['timestamp']).strftime('%H:%M:%S')).classes('text-xs opacity-50 dark:text-gray-400')
+                            
                             async def forward_handler(e, i=item):
                                 success, msg = await send_preview_to_reviewer(i['raw_msg_id'])
                                 ui.notify(msg, type='positive' if success else 'negative')
+                                
                             ui.button(icon='send', on_click=forward_handler).props('round color=purple dense size=sm shadow stop-propagation').tooltip('私发给审核员')
+                            
     except RuntimeError as e:
-        if 'deleted' in str(e):
-            pass
-        else:
-            raise e
-
+        if 'deleted' in str(e): pass
+        else: raise e
 
 @ui.page('/')
 def main_page():
@@ -339,8 +371,10 @@ def main_page():
                                 ui.label('多媒体库').classes('font-bold dark:text-white')
                                 badge_media = ui.badge('0').props('color=blue dense')
                             
-                            with ui.row().classes('gap-1'):
-                                ui.button('全选', on_click=lambda: toggle_all_type('media')).props('flat dense size=sm')
+                            with ui.row().classes('gap-1 items-center'):
+                                ui.pagination(1, 1).bind_value(state, 'media_page').bind_max(state, 'media_page_max').props('dense color=blue size=sm active-color=blue-8').classes('mr-2')
+                                ui.button('本页', on_click=lambda: toggle_page_type('media')).props('flat dense size=sm color=blue')
+                                ui.button('全部', on_click=lambda: toggle_all_type('media')).props('flat dense size=sm')
                                 
                                 @with_lock
                                 async def send_media_direct():
@@ -380,8 +414,10 @@ def main_page():
                                 ui.label('聊天记录').classes('font-bold dark:text-white')
                                 badge_forward = ui.badge('0').props('color=purple dense')
                             
-                            with ui.row().classes('gap-1'):
-                                ui.button('全选', on_click=lambda: toggle_all_type('forward')).props('flat dense size=sm')
+                            with ui.row().classes('gap-1 items-center'):
+                                ui.pagination(1, 1).bind_value(state, 'forward_page').bind_max(state, 'forward_page_max').props('dense color=purple size=sm active-color=purple-8').classes('mr-2')
+                                ui.button('本页', on_click=lambda: toggle_page_type('forward')).props('flat dense size=sm color=purple')
+                                ui.button('全部', on_click=lambda: toggle_all_type('forward')).props('flat dense size=sm')
                                 
                                 @with_lock
                                 async def send_forwards():
@@ -433,4 +469,5 @@ def main_page():
                 raise e
             
     ui.timer(1.0, auto_refresh)
+
 
