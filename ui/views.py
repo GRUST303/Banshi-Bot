@@ -372,7 +372,7 @@ def main_page():
                                 badge_media = ui.badge('0').props('color=blue dense')
                             
                             with ui.row().classes('gap-1 items-center'):
-                                ui.pagination(1, 1).bind_value(state, 'media_page').bind_max(state, 'media_page_max').props('dense color=blue size=sm active-color=blue-8').classes('mr-2')
+                                ui.pagination(1, 1).bind_value(state, 'media_page').bind_prop('max', state, 'media_page_max').props('dense color=blue size=sm active-color=blue-8').classes('mr-2')
                                 ui.button('本页', on_click=lambda: toggle_page_type('media')).props('flat dense size=sm color=blue')
                                 ui.button('全部', on_click=lambda: toggle_all_type('media')).props('flat dense size=sm')
                                 
@@ -415,7 +415,7 @@ def main_page():
                                 badge_forward = ui.badge('0').props('color=purple dense')
                             
                             with ui.row().classes('gap-1 items-center'):
-                                ui.pagination(1, 1).bind_value(state, 'forward_page').bind_max(state, 'forward_page_max').props('dense color=purple size=sm active-color=purple-8').classes('mr-2')
+                                ui.pagination(1, 1).bind_value(state, 'forward_page').bind_prop('max', state, 'forward_page_max').props('dense color=purple size=sm active-color=purple-8').classes('mr-2')
                                 ui.button('本页', on_click=lambda: toggle_page_type('forward')).props('flat dense size=sm color=purple')
                                 ui.button('全部', on_click=lambda: toggle_all_type('forward')).props('flat dense size=sm')
                                 
@@ -469,5 +469,6 @@ def main_page():
                 raise e
             
     ui.timer(1.0, auto_refresh)
+
 
 
