@@ -5,7 +5,7 @@ import websockets
 from nicegui import ui
 from core.state import state
 from core.utils import add_log, process_message_content, get_avatar_url
-from core.api import fetch_group_info, fetch_user_info, execute_merge_forward, execute_single_forward
+from core.api import fetch_group_info, fetch_user_info, execute_merge_forward, execute_single_forward, api_call
 
 # [新增] 自动打包互斥锁，防止并发发送冲突
 auto_pack_lock = asyncio.Lock()
@@ -85,7 +85,7 @@ async def check_and_trigger_warnings():
             await api_call("send_private_msg", {"user_id": int(state.swordholder_qq), "message": full_msg})
             add_log("[Warn] 已向审核员发送堆积警告")
         except Exception as e:
-            pass
+            add_log(f"[Error] 警告发送失败 (请检查审核员QQ设置): {e}")
 
 async def run_bot(on_status_change=None):
     def update_status(status_str):
