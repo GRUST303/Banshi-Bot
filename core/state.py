@@ -26,6 +26,12 @@ class BotState:
         self.warn_forward_count: int = 20
         self.warn_interval_minutes: int = 30
         self.last_warn_time: float = 0.0
+
+        # [新增] 分页控制
+        self.media_page: int = 1
+        self.media_page_max: int = 1
+        self.forward_page: int = 1
+        self.forward_page_max: int = 1
         
         self.connected = False
         self.running = False
@@ -119,4 +125,5 @@ class BotState:
 state = BotState()
 
 state.load_data()
+
 
