@@ -22,6 +22,8 @@ reviewer_panel_refreshable = None
 loading_dialog = None 
 global_viewer_dialog = None
 global_viewer_content = None
+media_pagination = None
+forward_pagination = None
 
 def with_lock(func):
     # 包装器：防止瞎点按钮导致并发冲突
@@ -120,6 +122,8 @@ def refresh_review_panel():
         state.forward_page_max = max(1, math.ceil(len(forward_all) / 20))
         if state.media_page > state.media_page_max: state.media_page = state.media_page_max
         if state.forward_page > state.forward_page_max: state.forward_page = state.forward_page_max
+        if media_pagination: media_pagination.max = state.media_page_max
+        if forward_pagination: forward_pagination.max = state.forward_page_max
         
         if badge_media: badge_media.text = str(len(media_all))
         if badge_forward: badge_forward.text = str(len(forward_all))
@@ -181,6 +185,7 @@ def main_page():
     global groups_s_refreshable, groups_t_refreshable, reviewer_panel_refreshable
     global global_viewer_dialog, global_viewer_content, loading_dialog
     global badge_media, badge_forward
+    global media_pagination, forward_pagination
     
     dark = ui.dark_mode()
     
@@ -372,7 +377,7 @@ def main_page():
                                 badge_media = ui.badge('0').props('color=blue dense')
                             
                             with ui.row().classes('gap-1 items-center'):
-                                ui.pagination(1, 1).bind_value(state, 'media_page').bind_prop('max', state, 'media_page_max').props('dense color=blue size=sm active-color=blue-8').classes('mr-2')
+                                media_pagination = ui.pagination(1, 1).bind_value(state, 'media_page').props('dense color=blue size=sm active-color=blue-8').classes('mr-2')
                                 ui.button('本页', on_click=lambda: toggle_page_type('media')).props('flat dense size=sm color=blue')
                                 ui.button('全部', on_click=lambda: toggle_all_type('media')).props('flat dense size=sm')
                                 
@@ -415,7 +420,7 @@ def main_page():
                                 badge_forward = ui.badge('0').props('color=purple dense')
                             
                             with ui.row().classes('gap-1 items-center'):
-                                ui.pagination(1, 1).bind_value(state, 'forward_page').bind_prop('max', state, 'forward_page_max').props('dense color=purple size=sm active-color=purple-8').classes('mr-2')
+                                forward_pagination = ui.pagination(1, 1).bind_value(state, 'forward_page').props('dense color=purple size=sm active-color=purple-8').classes('mr-2')
                                 ui.button('本页', on_click=lambda: toggle_page_type('forward')).props('flat dense size=sm color=purple')
                                 ui.button('全部', on_click=lambda: toggle_all_type('forward')).props('flat dense size=sm')
                                 
@@ -469,6 +474,7 @@ def main_page():
                 raise e
             
     ui.timer(1.0, auto_refresh)
+
 
 
 
