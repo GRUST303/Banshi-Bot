@@ -193,7 +193,7 @@ def main_page():
         if g_type == 'source': state.source_groups.discard(gid)
         else: state.target_groups.discard(gid)
         state.save_config()
-        refresh_func()
+        refresh_func.refresh()
 
     def render_group_item(gid, g_type, refresh_func):
         info = state.group_info_cache.get(gid, {})
@@ -370,15 +370,15 @@ def main_page():
                     
                     # 模块 A：图片视频库
                     with apply_card_theme(ui.card()).classes('flex-1 w-0 h-full flex flex-col p-0 overflow-hidden'):
-                        with ui.row().classes('w-full p-3 border-b dark:border-gray-700 justify-between items-center bg-gray-100 dark:bg-gray-800'):
-                            with ui.row().classes('items-center gap-2'):
+                        # 紧凑型头部
+                        with ui.row().classes('w-full p-2 border-b dark:border-gray-700 justify-between items-center bg-gray-100 dark:bg-gray-800 flex-nowrap'):
+                            with ui.row().classes('items-center gap-1 flex-nowrap whitespace-nowrap'):
                                 ui.icon('perm_media', size='sm').classes('text-blue-500')
-                                ui.label('多媒体库').classes('font-bold dark:text-white')
+                                ui.label('多媒体库').classes('font-bold dark:text-white text-sm')
                                 badge_media = ui.badge('0').props('color=blue dense')
                             
-                            with ui.row().classes('gap-1 items-center'):
-                                media_pagination = ui.pagination(1, 1).bind_value(state, 'media_page').props('dense color=blue size=sm active-color=blue-8').classes('mr-2')
-                                ui.button('本页', on_click=lambda: toggle_page_type('media')).props('flat dense size=sm color=blue')
+                            with ui.row().classes('gap-1 items-center flex-nowrap'):
+                                ui.button('本页', on_click=lambda: toggle_page_type('media')).props('outline dense size=sm color=blue')
                                 ui.button('全部', on_click=lambda: toggle_all_type('media')).props('flat dense size=sm')
                                 
                                 @with_lock
@@ -388,7 +388,7 @@ def main_page():
                                     ui.notify(f"开始直发 {len(selected)} 份媒体，有点慢耐心等...", type='info')
                                     for item in selected: await execute_direct_media_send(item['content'])
                                     delete_selected('media')
-                                ui.button('硬发', on_click=send_media_direct).props('color=orange icon=send size=sm').tooltip('不打包，直接逐条发送')
+                                ui.button('硬发', on_click=send_media_direct).props('color=orange icon=send size=sm px-2').tooltip('不打包，直接逐条发送')
 
                                 @with_lock
                                 async def send_media_pack():
@@ -402,26 +402,38 @@ def main_page():
                                         delete_selected('media')
                                         ui.notify("打包发送完成", type='positive')
                                     else:
-                                        ui.notify(f"部分群未送达，原文件已保留", type='negative')
-                                ui.button('打包', on_click=send_media_pack).props('color=blue icon=inventory_2 size=sm').tooltip('整合为一条聊天记录发送')
-                                
-                                ui.button(icon='delete', on_click=lambda: delete_selected('media')).props('color=red outline size=sm')
+                                        ui.notify(
+                                            "❌ 打包失败！\n"
+                                            "原因：你选中的媒体中包含了已过期或不支持的视频/图片，导致整包崩溃。\n"
+                                            "建议：请分批次(每次3-5个)打包来排查出'坏文件'并将其删除；或者直接点击【硬发】暴力单条推送。", 
+                                            type='negative', 
+                                            timeout=8000, 
+                                            multi_line=True
+                                        )
+                                ui.button('打包', on_click=send_media_pack).props('color=blue icon=inventory_2 size=sm px-2').tooltip('整合为一条聊天记录发送')
+                                ui.button(icon='delete', on_click=lambda: delete_selected('media')).props('color=red outline size=sm px-2')
 
+                        # 中间滚动内容区
                         with ui.scroll_area().classes('flex-grow w-full p-2'):
                             review_container_left = ui.grid(columns=3).classes('w-full gap-2')
                             refresh_review_panel()
+                            
+                        # 底部翻页栏
+                        with ui.row().classes('w-full p-1 justify-center border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900'):
+                            media_pagination = ui.pagination(1, 1).bind_value(state, 'media_page').props('dense color=blue size=sm active-color=blue-8')
+                            media_pagination.on_value_change(refresh_review_panel) # 点击立刻刷新
 
                     # 模块 B：聊天记录源
                     with apply_card_theme(ui.card()).classes('flex-1 w-0 h-full flex flex-col p-0 overflow-hidden'):
-                        with ui.row().classes('w-full p-3 border-b dark:border-gray-700 justify-between items-center bg-gray-100 dark:bg-gray-800'):
-                            with ui.row().classes('items-center gap-2'):
+                        # 紧凑型头部
+                        with ui.row().classes('w-full p-2 border-b dark:border-gray-700 justify-between items-center bg-gray-100 dark:bg-gray-800 flex-nowrap'):
+                            with ui.row().classes('items-center gap-1 flex-nowrap whitespace-nowrap'):
                                 ui.icon('forum', size='sm').classes('text-purple-500')
-                                ui.label('聊天记录').classes('font-bold dark:text-white')
+                                ui.label('外网情报').classes('font-bold dark:text-white text-sm')
                                 badge_forward = ui.badge('0').props('color=purple dense')
                             
-                            with ui.row().classes('gap-1 items-center'):
-                                forward_pagination = ui.pagination(1, 1).bind_value(state, 'forward_page').props('dense color=purple size=sm active-color=purple-8').classes('mr-2')
-                                ui.button('本页', on_click=lambda: toggle_page_type('forward')).props('flat dense size=sm color=purple')
+                            with ui.row().classes('gap-1 items-center flex-nowrap'):
+                                ui.button('本页', on_click=lambda: toggle_page_type('forward')).props('outline dense size=sm color=purple')
                                 ui.button('全部', on_click=lambda: toggle_all_type('forward')).props('flat dense size=sm')
                                 
                                 @with_lock
@@ -431,13 +443,18 @@ def main_page():
                                     ui.notify(f"准备转发 {len(selected)} 条记录...", type='info')
                                     for item in selected: await execute_single_forward(item['raw_msg_id'])
                                     delete_selected('forward')
-                                ui.button('转发', on_click=send_forwards).props('color=green icon=send size=sm')
-                                
-                                ui.button(icon='delete', on_click=lambda: delete_selected('forward')).props('color=red outline size=sm')
+                                ui.button('转发', on_click=send_forwards).props('color=green icon=send size=sm px-2')
+                                ui.button(icon='delete', on_click=lambda: delete_selected('forward')).props('color=red outline size=sm px-2')
 
+                        # 中间滚动内容区
                         with ui.scroll_area().classes('flex-grow w-full p-2'):
                             review_container_right = ui.column().classes('w-full gap-2')
                             refresh_review_panel()
+                            
+                        # 底部翻页栏
+                        with ui.row().classes('w-full p-1 justify-center border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900'):
+                            forward_pagination = ui.pagination(1, 1).bind_value(state, 'forward_page').props('dense color=purple size=sm active-color=purple-8')
+                            forward_pagination.on_value_change(refresh_review_panel) # 点击立刻刷新
 
                 # 控制台输出日志
                 log_card = apply_card_theme(ui.card())
@@ -474,6 +491,7 @@ def main_page():
                 raise e
             
     ui.timer(1.0, auto_refresh)
+
 
 
 
