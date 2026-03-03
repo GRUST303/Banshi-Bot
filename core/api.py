@@ -5,6 +5,7 @@ import random
 from typing import List, Tuple
 from core.state import state
 from core.utils import add_log
+import copy
 
 async def api_call(action, params, wait=False, timeout=15):
     # 底层API调用，封装了发包和异步等待响应的逻辑
@@ -51,17 +52,19 @@ async def execute_merge_forward(content_list: List[List[dict]], msg_ids: List[in
         gid_int = int(gid)
         
         try:
-            res = await api_call("send_group_forward_msg", {"group_id": gid_int, "messages": nodes_l1}, wait=True)
+            # 【深拷贝】防止 NapCat 在连续发群时污染原有的文件缓存结构
+            payload_l1 = copy.deepcopy(nodes_l1)
+            res = await api_call("send_group_forward_msg", {"group_id": gid_int, "messages": payload_l1}, wait=True, timeout=90)
             if res and res.get('status') == 'ok':
                 add_log(f"[Send] 伪造打包发送成功 -> 群{gid}")
                 success = True
         except Exception as e:
             add_log(f"[Warn] L1发送失败 ({e})，尝试降级L2")
         
-        # 降级重试
         if not success and nodes_l2:
             try:
-                res = await api_call("send_group_forward_msg", {"group_id": gid_int, "messages": nodes_l2}, wait=True)
+                payload_l2 = copy.deepcopy(nodes_l2)
+                res = await api_call("send_group_forward_msg", {"group_id": gid_int, "messages": payload_l2}, wait=True, timeout=90)
                 if res and res.get('status') == 'ok':
                     add_log(f"[Send] 引用打包成功 -> 群{gid}")
                     success = True
@@ -105,4 +108,5 @@ async def send_preview_to_reviewer(raw_msg_id) -> Tuple[bool, str]:
         return True, f"已私聊推送给 ({target_qq})"
     except Exception as e:
         add_log(f"[Error] 私聊推送失败: {e}")
+
         return False, "发送异常，看日志"
